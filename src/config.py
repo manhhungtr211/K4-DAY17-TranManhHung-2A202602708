@@ -49,20 +49,33 @@ def load_config(base_dir: Path | None = None) -> LabConfig:
     model_name = os.getenv("LLM_MODEL", "gpt-4o-mini")
     temperature = float(os.getenv("LLM_TEMPERATURE", "0.0"))
 
-    api_key = (
-        os.getenv("OPENAI_API_KEY")
-        or os.getenv("GEMINI_API_KEY")
-        or os.getenv("ANTHROPIC_API_KEY")
-        or os.getenv("OPENROUTER_API_KEY")
-        or os.getenv("CUSTOM_API_KEY")
-    )
+    def _resolve_api_key(prov: str) -> str | None:
+        p = normalize_provider(prov)
+        if p == "gemini":
+            return os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        if p == "openrouter":
+            return os.getenv("OPENROUTER_API_KEY")
+        if p == "openai":
+            return os.getenv("OPENAI_API_KEY")
+        if p == "anthropic":
+            return os.getenv("ANTHROPIC_API_KEY")
+        if p == "custom":
+            return os.getenv("CUSTOM_API_KEY") or os.getenv("OPENAI_API_KEY")
+        return (
+            os.getenv("GEMINI_API_KEY")
+            or os.getenv("OPENROUTER_API_KEY")
+            or os.getenv("OPENAI_API_KEY")
+            or os.getenv("ANTHROPIC_API_KEY")
+            or os.getenv("CUSTOM_API_KEY")
+        )
+
     base_url = os.getenv("CUSTOM_BASE_URL") or os.getenv("OLLAMA_BASE_URL")
 
     model_config = ProviderConfig(
         provider=provider_name,
         model_name=model_name,
         temperature=temperature,
-        api_key=api_key,
+        api_key=_resolve_api_key(provider_name),
         base_url=base_url,
     )
 
@@ -72,7 +85,7 @@ def load_config(base_dir: Path | None = None) -> LabConfig:
         provider=judge_provider,
         model_name=judge_model_name,
         temperature=0.0,
-        api_key=api_key,
+        api_key=_resolve_api_key(judge_provider),
         base_url=base_url,
     )
 

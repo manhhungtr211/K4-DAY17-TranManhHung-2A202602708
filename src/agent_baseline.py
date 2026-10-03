@@ -52,8 +52,14 @@ class BaselineAgent:
                 session.prompt_tokens_processed += prompt_tokens
 
                 session.messages.append({"role": "user", "content": message})
-                res = self.langchain_agent.invoke({"input": message})
-                resp_text = res if isinstance(res, str) else str(res.get("output", res))
+                res = self.langchain_agent.invoke(message)
+                if hasattr(res, "content"):
+                    c = res.content
+                    resp_text = " ".join(part.get("text", "") if isinstance(part, dict) else str(part) for part in c) if isinstance(c, list) else str(c)
+                elif isinstance(res, dict):
+                    resp_text = str(res.get("output", res.get("content", str(res))))
+                else:
+                    resp_text = str(res)
                 resp_tokens = estimate_tokens(resp_text)
 
                 session.messages.append({"role": "assistant", "content": resp_text})
